@@ -2,16 +2,22 @@ import socket
 import threading
 import json
 import hashlib
+
 from crypto import CryptoManager
-from dns import resolve, register
+from dns import register, resolve
 
 class IPv10Node:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.crypto = CryptoManager()
 
+        self.crypto = CryptoManager()
         self.address = self.generate_address()
+
+        # DNS auto register
+        self.name = f"node_{port}.adaptum"
+        register(self.name, self.address)
+
         self.peers = []
         self.sessions = {}
 
@@ -23,7 +29,8 @@ class IPv10Node:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind((self.host, self.port))
         server.listen(5)
-        print(f"[{self.address[:8]}] Listening on {self.port}")
+
+        print(f"[{self.name}] {self.address[:10]} listening on {self.port}")
 
         threading.Thread(target=self.listen, args=(server,), daemon=True).start()
 
@@ -49,7 +56,7 @@ class IPv10Node:
             inner = json.loads(decrypted)
 
             if inner["dst"] == self.address:
-                print(f"[{self.address[:8]}] RECEIVED:", inner["payload"])
+                print(f"[{self.name}] RECEIVED:", inner["payload"])
             else:
                 inner["ttl"] -= 1
                 if inner["ttl"] > 0:
@@ -74,6 +81,7 @@ class IPv10Node:
             return
 
         encrypted = self.crypto.encrypt(key, json.dumps(packet))
+
         data = {
             "type": "DATA",
             "payload": encrypted
@@ -88,10 +96,19 @@ class IPv10Node:
             self.send_secure(peer[0], peer[1], packet)
 
     def send_message(self, dst, message):
+        # resolve DNS
+        if ".adaptum" in dst:
+            resolved = resolve(dst)
+            if not resolved:
+                print("Domain not found:", dst)
+                return
+            dst = resolved
+
         packet = {
             "src": self.address,
             "dst": dst,
             "ttl": 5,
             "payload": message
         }
+
         self.forward(packet)
