@@ -9,6 +9,8 @@ time.sleep(1)
 A.connect_peer("127.0.0.1", 5002)
 
 time.sleep(2)
-A.send_message("TARGET_NODE_C_ADDRESS", "Hello from A")
 
-while True: time.sleep(1)
+A.send_message("node_5003.adaptum", "Hello from Adaptum IPv10 🚀")
+
+while True:
+    time.sleep(1)
