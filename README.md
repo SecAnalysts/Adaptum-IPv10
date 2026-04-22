@@ -1,4 +1,5 @@
 # 📄 ADAPTUM IPv10 — Whitepaper v1.0
+![ADAPTUM IPv10 Logo](https://raw.githubusercontent.com/SecAnalysts/Adaptum-IPv10/refs/heads/main/Adaptum%20IPv10.png)
 ## A Quantum-Resistant Decentralized Network Protocol
 ### 1. Introduction
 The modern internet is built on legacy protocols such as IPv4 and IPv6. While these protocols have scaled globally, they were not designed for:
