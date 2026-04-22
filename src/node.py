@@ -3,6 +3,7 @@ import threading
 import json
 import hashlib
 from crypto import CryptoManager
+from dns import resolve, register
 
 class IPv10Node:
     def __init__(self, host, port):
