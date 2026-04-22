@@ -1,0 +1,132 @@
+ADAPTUM IPv10 — Licensing
+A Quantum-Resistant Decentralized Network Protocol
+
+Version 1.0 | Effective Date: April 22, 2026
+
+ADAPTUM IPv10 is released under a Dual Licensing Model. You may choose the license that best fits your use case:
+
+License Type: AGPLv3
+Who It's For: Individuals, researchers, OSS projects, teams <= 10 people
+Cost: Free
+Source Code Disclosure: Required (if modified)
+
+License Type: Commercial License
+Who It's For: Organizations > 10 employees/users
+Cost: Paid
+Source Code Disclosure: Not required
+
+
+1. OPEN SOURCE LICENSE — GNU AGPLv3
+
+For individuals, non-commercial use, academic research, and teams with 10 or fewer members, ADAPTUM IPv10 is freely available under the GNU Affero General Public License v3.0 (AGPLv3).
+
+Key Requirements:
+- You must disclose source code when distributing modified versions.
+- If you run modified software as a network service, you must make the source code available to users.
+- Changes must be licensed under the same AGPLv3 terms.
+
+Full text: https://www.gnu.org/licenses/agpl-3.0.txt
+
+
+2. COMMERCIAL LICENSE — ADAPTUM IPv10 COMMERCIAL LICENSE
+
+This license applies to organizations and enterprises that:
+- Have more than 10 employees or concurrent users
+- Cannot or do not wish to comply with AGPLv3's source code disclosure requirements
+- Intend to use ADAPTUM IPv10 in proprietary, closed-source, or internal-only environments
+
+Terms & Conditions
+
+2.1 Paid License
+This license requires a one-time or subscription fee based on:
+- Number of employees (>= 11)
+- Number of concurrent users
+- Deployment scale
+
+2.2 No Source Code Disclosure
+Unlike AGPLv3, you are NOT required to disclose your modified source code to the public.
+
+2.3 Closed Distribution Rights
+You have the full right to:
+- Use ADAPTUM IPv10 in proprietary systems
+- Modify the code privately
+- Distribute binaries without accompanying source
+- Integrate into commercial products
+
+2.4 No Warranty
+This software is provided "AS IS" without warranties of any kind.
+
+2.5 Redistribution
+You may not sublicense or distribute the software under terms more restrictive than this Commercial License without written permission.
+
+
+3. DUAL LICENSING SUMMARY
+
+SPDX-License-Identifier: AGPL-3.0-only OR Commercial
+
+You may choose EITHER:
+- AGPLv3 (if eligible), OR
+- Commercial License (if you purchase it)
+
+You may NOT be required to comply with both simultaneously.
+
+
+4. PRICING & ACQUISITION
+
+AGPLv3 (Free):
+- Download from GitHub
+- Fork and modify
+- Use for personal/educational purposes
+
+Commercial License (Paid):
+
+Organization Size / Price Model:
+11-50 employees      -> Contact for pricing
+51-250 employees     -> Contact for pricing
+251+ employees       -> Enterprise quote
+OEM / Embedding      -> Custom agreement
+
+
+5. HOW TO COMPLY
+
+If using AGPLv3:
+- Keep the LICENSE file in your distribution
+- Document any modifications made
+- Provide source code to your users
+
+If purchasing Commercial License:
+- Sign a Commercial License Agreement
+- Pay the applicable fee
+- You may remove AGPLv3 notices from your private codebase
+
+
+6. LEGAL NOTES
+
+- This license does not grant permission to use the ADAPTUM name or logo for endorsement without written consent.
+- Violation of license terms automatically terminates your rights under this agreement.
+
+
+7. LICENSE TEXT FILES
+
+File: LICENSE
+Description: This dual-license explanation (you are reading it)
+
+File: LICENSE.AGPLv3
+Description: Full GNU AGPLv3 text
+
+File: COMMERCIAL_LICENSE.txt
+Description: Full Commercial License agreement (available upon request)
+
+
+8. ACKNOWLEDGMENTS
+
+ADAPTUM IPv10 is inspired by the principles of:
+- Decentralization
+- Privacy by design
+- Post-quantum cryptography
+- Open collaboration
+
+Choose the license that fits your values and your business needs.
+
+
+© 2026 ADAPTUM Protocol Contributors. All rights reserved.
