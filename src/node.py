@@ -5,7 +5,7 @@ import hashlib
 import logging
 
 from crypto import CryptoManager
-from dns import register, resolve
+from dns import register, resolve, merge, export
 
 
 class IPv10Node:
@@ -41,7 +41,6 @@ class IPv10Node:
 
         threading.Thread(target=self.listen, args=(server,), daemon=True).start()
 
-        # auto connect peers
         for peer in self.peers:
             self.connect_peer(peer[0], peer[1])
 
@@ -64,12 +63,21 @@ class IPv10Node:
         if packet["type"] == "INTRO":
             node_addr = packet["address"]
             pubkey = bytes.fromhex(packet["pubkey"])
-
             self.known_nodes[node_addr] = pubkey
             logging.info(f"Registered node {node_addr[:8]}")
             return
 
-        if packet["type"] == "DATA":
+        elif packet["type"] == "DNS_SYNC":
+            merge(packet["records"])
+            return
+
+        elif packet["type"] == "PEER_LIST":
+            for p in packet["peers"]:
+                if p not in self.peers:
+                    self.peers.append(p)
+            return
+
+        elif packet["type"] == "DATA":
             key = self.sessions.get(addr)
             if not key:
                 return
@@ -83,12 +91,14 @@ class IPv10Node:
                 payload = inner["payload"]
 
                 pubkey = self.known_nodes.get(sender)
-
                 if not pubkey:
-                    logging.warning("Unknown sender, dropped")
+                    logging.warning("Unknown sender")
                     return
 
                 self.crypto.verify(pubkey, signature, payload)
+
+                # 🔥 routing path
+                inner["path"].append(self.address)
 
                 if inner["dst"] == self.address:
                     logging.info(f"RECEIVED: {payload}")
@@ -113,13 +123,28 @@ class IPv10Node:
         key = self.crypto.generate_session_key()
         self.sessions[(host, port)] = key
 
+        # INTRO
         intro = {
             "type": "INTRO",
             "address": self.address,
             "pubkey": self.get_pubkey_bytes().hex()
         }
-
         self.send_raw(host, port, intro)
+
+        # DNS sync
+        dns_packet = {
+            "type": "DNS_SYNC",
+            "records": export()
+        }
+        self.send_raw(host, port, dns_packet)
+
+        # Peer discovery
+        peer_packet = {
+            "type": "PEER_LIST",
+            "peers": self.peers
+        }
+        self.send_raw(host, port, peer_packet)
+
         logging.info(f"Connected to {host}:{port}")
 
     def send_secure(self, host, port, packet):
@@ -137,9 +162,15 @@ class IPv10Node:
         self.send_raw(host, port, data)
 
     def forward(self, packet, exclude=None):
+        visited = set(packet.get("path", []))
+
         for peer in self.peers:
             if exclude and tuple(peer) == tuple(exclude):
                 continue
+
+            if self.address in visited:
+                continue
+
             self.send_secure(peer[0], peer[1], packet)
 
     def send_message(self, dst, message):
@@ -158,7 +189,8 @@ class IPv10Node:
             "dst": dst,
             "ttl": 5,
             "payload": message,
-            "signature": signature
+            "signature": signature,
+            "path": [self.address]
         }
 
         self.forward(packet)
