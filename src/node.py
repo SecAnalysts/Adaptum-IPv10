@@ -2,28 +2,28 @@ import socket
 import threading
 import json
 import hashlib
+import logging
 
 from crypto import CryptoManager
 from dns import register, resolve
 
 
 class IPv10Node:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
+    def __init__(self, config):
+        self.host = config["host"]
+        self.port = config["port"]
+        self.name = config["name"]
+        self.peers = config.get("peers", [])
 
         self.crypto = CryptoManager()
         self.address = self.generate_address()
 
-        # DNS
-        self.name = f"node_{port}.adaptum"
         register(self.name, self.address)
 
-        self.peers = []
         self.sessions = {}
+        self.known_nodes = {}
 
-        # 🔐 NEW: identity storage
-        self.known_nodes = {}  # address -> pubkey
+        logging.info(f"{self.name} initialized ({self.address[:10]})")
 
     def generate_address(self):
         pub = self.crypto.public_key.public_bytes_raw()
@@ -37,67 +37,68 @@ class IPv10Node:
         server.bind((self.host, self.port))
         server.listen(5)
 
-        print(f"[{self.name}] {self.address[:10]} listening on {self.port}")
+        logging.info(f"{self.name} listening on {self.host}:{self.port}")
 
         threading.Thread(target=self.listen, args=(server,), daemon=True).start()
 
+        # auto connect peers
+        for peer in self.peers:
+            self.connect_peer(peer[0], peer[1])
+
     def listen(self, server):
         while True:
-            conn, addr = server.accept()
-            data = conn.recv(8192)
-            if data:
-                try:
+            try:
+                conn, addr = server.accept()
+                data = conn.recv(8192)
+
+                if data:
                     packet = json.loads(data.decode())
                     self.handle(packet, addr)
-                except:
-                    pass
-            conn.close()
+
+                conn.close()
+            except Exception as e:
+                logging.error(f"Listen error: {e}")
 
     def handle(self, packet, addr):
 
-        # 🔐 HANDLE INTRO (public key exchange)
         if packet["type"] == "INTRO":
             node_addr = packet["address"]
             pubkey = bytes.fromhex(packet["pubkey"])
 
             self.known_nodes[node_addr] = pubkey
-            print(f"[{self.name}] Registered node {node_addr[:8]}")
+            logging.info(f"Registered node {node_addr[:8]}")
             return
 
-        # 🔐 HANDLE DATA
         if packet["type"] == "DATA":
             key = self.sessions.get(addr)
             if not key:
                 return
 
-            decrypted = self.crypto.decrypt(key, packet["payload"])
-            inner = json.loads(decrypted)
-
-            sender = inner["src"]
-            signature = inner.get("signature")
-            payload = inner["payload"]
-
-            pubkey = self.known_nodes.get(sender)
-
-            # ❌ unknown sender
-            if not pubkey:
-                print(f"[{self.name}] Unknown sender, dropping")
-                return
-
-            # ❌ invalid signature
             try:
-                self.crypto.verify(pubkey, signature, payload)
-            except:
-                print(f"[{self.name}] Invalid signature, dropping")
-                return
+                decrypted = self.crypto.decrypt(key, packet["payload"])
+                inner = json.loads(decrypted)
 
-            # ✅ valid
-            if inner["dst"] == self.address:
-                print(f"[{self.name}] VERIFIED MESSAGE:", payload)
-            else:
-                inner["ttl"] -= 1
-                if inner["ttl"] > 0:
-                    self.forward(inner, exclude=addr)
+                sender = inner["src"]
+                signature = inner.get("signature")
+                payload = inner["payload"]
+
+                pubkey = self.known_nodes.get(sender)
+
+                if not pubkey:
+                    logging.warning("Unknown sender, dropped")
+                    return
+
+                self.crypto.verify(pubkey, signature, payload)
+
+                if inner["dst"] == self.address:
+                    logging.info(f"RECEIVED: {payload}")
+                else:
+                    inner["ttl"] -= 1
+                    if inner["ttl"] > 0:
+                        self.forward(inner, exclude=addr)
+
+            except Exception as e:
+                logging.warning(f"Invalid packet: {e}")
 
     def send_raw(self, host, port, packet):
         try:
@@ -105,21 +106,21 @@ class IPv10Node:
             s.connect((host, port))
             s.send(json.dumps(packet).encode())
             s.close()
-        except:
-            pass
+        except Exception as e:
+            logging.error(f"Send error: {e}")
 
-    # 🔐 CONNECT + INTRO
     def connect_peer(self, host, port):
         key = self.crypto.generate_session_key()
         self.sessions[(host, port)] = key
 
-        intro_packet = {
+        intro = {
             "type": "INTRO",
             "address": self.address,
             "pubkey": self.get_pubkey_bytes().hex()
         }
 
-        self.send_raw(host, port, intro_packet)
+        self.send_raw(host, port, intro)
+        logging.info(f"Connected to {host}:{port}")
 
     def send_secure(self, host, port, packet):
         key = self.sessions.get((host, port))
@@ -137,21 +138,19 @@ class IPv10Node:
 
     def forward(self, packet, exclude=None):
         for peer in self.peers:
-            if exclude and peer == exclude:
+            if exclude and tuple(peer) == tuple(exclude):
                 continue
             self.send_secure(peer[0], peer[1], packet)
 
     def send_message(self, dst, message):
 
-        # DNS resolve
         if ".adaptum" in dst:
             resolved = resolve(dst)
             if not resolved:
-                print("Domain not found:", dst)
+                logging.warning(f"Domain not found: {dst}")
                 return
             dst = resolved
 
-        # 🔐 SIGN MESSAGE
         signature = self.crypto.sign(message)
 
         packet = {
